@@ -59,14 +59,11 @@ cv.lm <- function(vars, train, k=5) { ## vars should be a character vector of va
   }
   #
   # now call that function on all the variable combinations
-  # dfMSE <- data.frame(t(sapply(vars, theCV, train=train, k=k, USE.NAMES = F)))
-  # names(dfMSE) <- c('formula', 'MSE', 'adj.R2', 'p-value')
   dfM <- sapply(vars, theCV, train=train, k=k, simplify = 'array', USE.NAMES = F)
   df <- data.frame(formula = unlist(dfM[1,]),
                    MSE = unlist(dfM[2,]),
                    adj.R2 = unlist(dfM[3,]),
                    p.value = unlist(dfM[4,]), stringsAsFactors = F)
-  #names(dfMSE) <- c('formula', 'MSE', 'adj.R2', 'p-value')
   df
 }
 
@@ -100,15 +97,15 @@ FSS <- function(train, k) { #### the y variable MUST be called "y"
     # pick best one from new level
     winner <- df[df$MSE==min(df$MSE), 1]
     varsWinner <- gsub(" ", "", gsub("y ~ ", "", winner))
-    print(paste("varsWinner", varsWinner, df[df$MSE==min(df$MSE), 2])) #########################
+    print(paste("varsWinner", varsWinner, df[df$MSE==min(df$MSE), 2])) #####
     # subset out remaining vars
     varsRemain <- varsMaster[!(varsMaster %in% unlist(strsplit(varsWinner, "+", fixed = T)))]
     #print(paste("varsRemain", paste(varsRemain, collapse = ", "))) ###
     # paste remaining vars onto winners to create new combinations
     newVars <- paste(varsWinner, varsRemain, sep="+")
   }
-  # print(dfMaster) #################
-  # dfMaster[dfMaster$MSE == min(dfMaster$MSE), ]
+  # output
+  print(paste("optimal model:", dfMaster[dfMaster$MSE == min(dfMaster$MSE), 1]))
   list(dfMaster[dfMaster$MSE == min(dfMaster$MSE), 1], ## the optimal formula
        dfMaster[dfMaster$MSE == min(dfMaster$MSE), ], ## the optimal formula plus stats for it
        dfMaster) ## stats for all of the options tested
@@ -118,3 +115,56 @@ w <- FSS(train, 5)
 w[[1]]
 w[[2]]
 # if you want to look choose by adj.R2 instead, just look at w[[3]] and pick the lowest adj.R2
+
+### BACKWARD SUBSET SELECTION
+
+BSS <- function(train, k) { #### the y variable MUST be called "y"
+  # master vector of variables
+  varsMaster <- names(train)[!grepl("y", names(train))]
+  # cross validation on all variables together
+  varsAll <- paste(varsMaster, collapse = "+")
+  df <- cv.lm(varsAll, train, k)
+  # create a master df to store all levels
+  dfMaster <- df
+  
+  # pick the best one
+  winner <- varsAll
+  varsWinner <- gsub(" ", "", gsub("y ~ ", "", winner))
+  # subset out remaining vars
+  varsRemain <- unlist(strsplit(varsWinner, "+", fixed = T))
+  # paste remaining vars onto winners to create new combinations
+  newVars <- character()
+  for (i in 1:length(varsRemain)) {
+    newVars[i] <- paste(varsRemain[-i], collapse = "+")
+  }
+
+  #
+  # loop over all combinations, picking the best one each level
+  while(length(newVars) > 1) {
+    # run cross-validation with new variable combinations
+    df <- cv.lm(newVars, train, k)
+    # store new level stats in master df
+    dfMaster <- rbind(dfMaster, df)
+    # pick best one from new level
+    winner <- df[df$MSE==min(df$MSE), 1]
+    varsWinner <- gsub(" ", "", gsub("y ~ ", "", winner))
+    print(paste("varsWinner", varsWinner, df[df$MSE==min(df$MSE), 2])) ###
+    # make options for next level
+    varsRemain <- unlist(strsplit(varsWinner, "+", fixed = T))
+    newVars <- character()
+    for (i in 1:length(varsRemain)) {
+      newVars[i] <- paste(varsRemain[-i], collapse = "+")
+    }
+  }
+  # output 
+  print(paste("optimal model:", dfMaster[dfMaster$MSE == min(dfMaster$MSE), 1]))
+  list(dfMaster[dfMaster$MSE == min(dfMaster$MSE), 1], ## the optimal formula
+       dfMaster[dfMaster$MSE == min(dfMaster$MSE), ], ## the optimal formula plus stats for it
+       dfMaster) ## stats for all of the options tested
+}
+
+bw <- BSS(train, 5)
+bw[[1]]
+bw[[2]]
+# if you want to look choose by adj.R2 instead, just look at bw[[3]] and pick the lowest adj.R2
+
