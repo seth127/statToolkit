@@ -59,46 +59,57 @@ cv.lm <- function(vars, train, k=5) { ## vars should be a character vector of va
   }
   #
   # now call that function on all the variable combinations
-  dfMSE <- data.frame(t(sapply(vars, theCV, train=train, k=k, USE.NAMES = F)))
-  names(dfMSE) <- c('formula', 'MSE', 'adj.R2', 'p-value')
-  dfMSE
+  # dfMSE <- data.frame(t(sapply(vars, theCV, train=train, k=k, USE.NAMES = F)))
+  # names(dfMSE) <- c('formula', 'MSE', 'adj.R2', 'p-value')
+  dfM <- sapply(vars, theCV, train=train, k=k, simplify = 'array', USE.NAMES = F)
+  df <- data.frame(formula = unlist(dfM[1,]),
+                   MSE = unlist(dfM[2,]),
+                   adj.R2 = unlist(dfM[3,]),
+                   p.value = unlist(dfM[4,]), stringsAsFactors = F)
+  #names(dfMSE) <- c('formula', 'MSE', 'adj.R2', 'p-value')
+  df
 }
 
 cv.lm('x7', train)
-cv.lm(c('x7', 'x5', 'x3+x5'), train)
+plus <- cv.lm(c('x7', 'x5', 'x3+x5'), train)
 
 
 ### FORWARD SUBSET SELECTION
 
-FSS <- function(train, k) { #### the y variable HAS to be called "y"
-  vars <- names(train)[!grepl("y", names(train))]
-  
-  dfMSE <- data.frame(formula = character(length(vars)),
-                      MSE = numeric(length(vars)),
-                      stringsAsFactors = F)
-  
-  onelevel <- function(prevWinner) {
-    dfMSE <- data.frame(formula = character(length(vars)), 
-                        MSE = numeric(length(vars)),
-                        stringsAsFactors = F)
-    prevX <- unlist(strsplit(prevWinner$formula, "y ~  "))[2]
-    
-    for (i in 1:length(vars)) {
-      vars <- vars[-prevX] ################need to figure out how to kick out old vars
-      dfMSE[i, ] <- CVn(train, 5, paste('y ~', prevX, "+", vars[i]))
-    }
-    dfMSE <- rbind(dfMSE, prevWinner)
-    winner <- dfMSE[dfMSE$MSE == max(dfMSE$MSE), ]
-    #winner
-    dfMSE
+FSS <- function(train, k) { #### the y variable MUST be called "y"
+  # master vector of variables
+  varsMaster <- names(train)[!grepl("y", names(train))]
+  # cross validation on single variables
+  df <- cv.lm(varsMaster, train, k)
+  # create a master df to store all levels
+  dfMaster <- df
+  # pick the best one
+  winner <- df[df$MSE==min(df$MSE), 1]
+  varsWinner <- gsub(" ", "", gsub("y ~ ", "", winner))
+  # subset out remaining vars
+  varsRemain <- varsMaster[!(varsMaster %in% unlist(strsplit(varsWinner, "+", fixed = T)))]
+  # paste remaining vars onto winners to create new combinations
+  newVars <- paste(varsWinner, varsRemain, sep="+")
+  #
+  # loop over all combinations, picking the best one each level
+  while(length(varsRemain) > 0) {
+    # run cross-validation with new variable combinations
+    df <- cv.lm(newVars, train, k)
+    # store new level stats in master df
+    dfMaster <- rbind(dfMaster, df)
+    print(dfMaster) ###########################
+    # pick best one from new level
+    winner <- df[df$MSE==min(df$MSE), 1]
+    varsWinner <- gsub(" ", "", gsub("y ~ ", "", winner))
+    print(paste("varsWinner", varsWinner)) #########################
+    # subset out remaining vars
+    varsRemain <- varsMaster[!(varsMaster %in% unlist(strsplit(varsWinner, "+", fixed = T)))]
+    print(paste("varsRemain", paste(varsRemain, collapse = ", "))) ##################
+    # paste remaining vars onto winners to create new combinations
+    newVars <- paste(varsWinner, varsRemain, sep="+")
   }
-  
-  for (i in 1:length(vars)) {
-    dfMSE[i, ] <- CVn(train, 5, paste('y ~ ', vars[i]))
-  }
-  winner <- dfMSE[dfMSE$MSE == max(dfMSE$MSE), ]
-  
-  onelevel(winner)
+  print(dfMaster) #################
+  dfMaster[dfMaster$MSE == min(dfMaster$MSE), ]
 }
 
-w <- FSS(train, 5)
+FSS(train, 5)
