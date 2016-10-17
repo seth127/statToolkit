@@ -97,19 +97,24 @@ FSS <- function(train, k) { #### the y variable MUST be called "y"
     df <- cv.lm(newVars, train, k)
     # store new level stats in master df
     dfMaster <- rbind(dfMaster, df)
-    print(dfMaster) ###########################
     # pick best one from new level
     winner <- df[df$MSE==min(df$MSE), 1]
     varsWinner <- gsub(" ", "", gsub("y ~ ", "", winner))
-    print(paste("varsWinner", varsWinner)) #########################
+    print(paste("varsWinner", varsWinner, df[df$MSE==min(df$MSE), 2])) #########################
     # subset out remaining vars
     varsRemain <- varsMaster[!(varsMaster %in% unlist(strsplit(varsWinner, "+", fixed = T)))]
-    print(paste("varsRemain", paste(varsRemain, collapse = ", "))) ##################
+    #print(paste("varsRemain", paste(varsRemain, collapse = ", "))) ###
     # paste remaining vars onto winners to create new combinations
     newVars <- paste(varsWinner, varsRemain, sep="+")
   }
-  print(dfMaster) #################
-  dfMaster[dfMaster$MSE == min(dfMaster$MSE), ]
+  # print(dfMaster) #################
+  # dfMaster[dfMaster$MSE == min(dfMaster$MSE), ]
+  list(dfMaster[dfMaster$MSE == min(dfMaster$MSE), 1], ## the optimal formula
+       dfMaster[dfMaster$MSE == min(dfMaster$MSE), ], ## the optimal formula plus stats for it
+       dfMaster) ## stats for all of the options tested
 }
 
-FSS(train, 5)
+w <- FSS(train, 5)
+w[[1]]
+w[[2]]
+# if you want to look choose by adj.R2 instead, just look at w[[3]] and pick the lowest adj.R2
