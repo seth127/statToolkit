@@ -3,11 +3,10 @@ library(car)
 library(glmnet)
 
 ## for testing purposes
-#setwd("~/Documents/DSI/notes/2-STAT-6021/homework")
 #gas <- read.xls("data-table-B3.xls")
 #gas <- gas[complete.cases(gas$x3),]
 
-ridgeit <- function(df) { ### RESPONSE MUST BE NAMED 'y'
+ridgeit <- function(df, seed = 1) { ### RESPONSE MUST BE NAMED 'y'
   #library(car)
   #library(glmnet)
   #dfm <- as.matrix(df)
@@ -20,7 +19,7 @@ ridgeit <- function(df) { ### RESPONSE MUST BE NAMED 'y'
   #coef(df.ridge)
   
   # pick optimal lambda with cross-validated test set MSE
-  set.seed (1)
+  set.seed (seed)
   cv.out = cv.glmnet(x, y, alpha=0, nfolds=nrow(x))
   plot(cv.out)
   bestlam=cv.out$lambda.min
@@ -76,10 +75,8 @@ ridgeit <- function(df) { ### RESPONSE MUST BE NAMED 'y'
   glmnet(x, y, alpha=0, lambda=bestlam)
 }
 
-#ridgemod <- ridgeit(gas)
 
-
-lassoit <- function(df) { ### RESPONSE MUST BE NAMED 'y'
+lassoit <- function(df, seed = 1) { ### RESPONSE MUST BE NAMED 'y'
   #library(car)
   #library(glmnet)
   #dfm <- as.matrix(df)
@@ -92,7 +89,7 @@ lassoit <- function(df) { ### RESPONSE MUST BE NAMED 'y'
   #coef(df.lasso)
   
   # pick optimal lambda with cross-validated test set MSE
-  set.seed (1)
+  set.seed (seed)
   cv.out = cv.glmnet(x, y, alpha=1, nfolds=nrow(x))
   plot(cv.out)
   bestlam=cv.out$lambda.min
@@ -148,8 +145,6 @@ lassoit <- function(df) { ### RESPONSE MUST BE NAMED 'y'
   glmnet(x, y, alpha=1, lambda=bestlam)
 }
 
-lassomod <- lassoit(gas)
-
 rlpred <- function(mod, newdata) {
   if('y' %in% names(newdata)) {
     newdata <- subset(newdata, select = -y) # get rid of y, if it's included
@@ -159,6 +154,10 @@ rlpred <- function(mod, newdata) {
 }
 
 # ## test it
+# 
+# ridgemod <- ridgeit(gas)
+# lassomod <- lassoit(gas)
+# 
 # plot(gas$x5, gas$y)
 # points(gas$x5, rlpred(ridgemod, gas), col="red")
 # points(gas$x5, rlpred(lassomod, gas), col="blue")
