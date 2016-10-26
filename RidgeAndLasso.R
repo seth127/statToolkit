@@ -2,9 +2,9 @@ library(gdata)
 library(car)
 library(glmnet)
 
-## for testing purposes
-#gas <- read.xls("data-table-B3.xls")
-#gas <- gas[complete.cases(gas$x3),]
+# # for testing purposes
+# gas <- read.xls("data-table-B3.xls")
+# gas <- gas[complete.cases(gas$x3),]
 
 ridgeit <- function(df, seed = 1) { ### RESPONSE MUST BE NAMED 'y'
   #library(car)

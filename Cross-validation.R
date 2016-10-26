@@ -5,7 +5,7 @@ train <- read.csv("teamassign05train.csv", header=T, stringsAsFactors = F)
 ## cross validate with the lm function
 cv.lm <- function(vars, train, k=5) { ## vars should be a character vector of variable names/combinations
   # the function to do the cross-validation
-  theCV <- function(var, train, k) {
+  theCV <- function(var, train, k, seed) {
     # create formula
     form = paste('y ~', var)
     #make column for preds
@@ -168,3 +168,62 @@ bw[[1]]
 bw[[2]]
 # if you want to look choose by adj.R2 instead, just look at bw[[3]] and pick the lowest adj.R2
 
+##### OTHER MODELS CROSS VALIDATION
+## cross validated RANDOM FOREST
+cv.rf <- function(train, k=5, returnDF=F) {
+  #make column for preds
+  train$preds <- factor(x=rep(levels(train$y)[1], nrow(train)), 
+                        levels = levels(train$y))
+  #randomize the indexes
+  nums <- sample(row.names(train), nrow(train))
+  #split the indexes into k groups
+  nv <- split(nums, cut(seq_along(nums), k, labels = FALSE))
+  #subset the training data into k folds
+  trainlist <- list()
+  for (i in 1:k) {
+    trainlist[[i]] <- train[nv[[i]], ]
+  }
+  #trainlist
+  #run on each fold
+  for (i in 1:k) {
+    ftrainlist <- trainlist[-i]
+    ftrain <- ftrainlist[[1]]
+    for (j in 2:length(ftrainlist)) {
+      ftrain <- rbind(ftrain, ftrainlist[[j]])
+    }
+    ############# THE MODEL #######################
+    #mod <- lm(as.formula(paste(form,' - preds')), data = ftrain) ### the model
+    mod <- randomForest(y ~ .-preds, data=ftrain, importance=TRUE,proximity=FALSE) ### the model
+    ###############################################
+    trainlist[[i]]$preds <- predict(mod, newdata = trainlist[[i]])
+    print(paste("finished fold", i))
+  }
+  #reassemble
+  cvdata <- ftrainlist[[1]]
+  for (j in 2:length(trainlist)) {
+    cvdata <- rbind(cvdata, trainlist[[j]])
+  }
+  # return stats
+  ##raw accuracy
+  ra <- nrow(cvdata[cvdata$y == cvdata$preds,]) / nrow(cvdata)
+  print(paste("Raw Accuracy:", ra))
+  ##balanced error rate
+  ###http://spokenlanguageprocessing.blogspot.com/2011/12/evaluating-multi-class-classification.html
+  nk <- length(levels(train$y))
+  recall <- numeric(nk)
+  for (i in 1:nk) {
+    ck <- levels(train$y)[i]
+    recall[i] <- nrow(predDF[predDF$y==ck & predDF$preds==ck,]) / nrow(predDF[predDF$y==ck,])
+  }
+  BER <- 1 - (sum(recall)/nk)
+  print(paste("Balanced Error Rate:", BER))
+  # return actual predictions
+  cvdata <- cvdata[order(as.numeric(row.names(cvdata))), ]
+  if(returnDF == T) {
+    return(cvdata[,c('y', 'preds')])
+  } else {
+    return()
+  }
+}
+
+predDF <- cv.rf(moddf, returnDF = T)

@@ -58,12 +58,12 @@ ciB0 <- function(model, df, perc) { #df = degrees of freedom, perc = the percent
   ciB0
 }
 
-# CONFIDENCE INTERVAL FOR SLOPE
-ciB1 <- function(model, df, perc) { #df = degrees of freedom, perc = the percentage you want to test i.e. .95 for 95% confidence interval
+# CONFIDENCE INTERVAL FOR SLOPE (OF VARIABLE v)
+ciB1 <- function(model, df, perc, v) { #df = degrees of freedom, perc = the percentage you want to test i.e. .95 for 95% confidence interval
   low <- (1 - perc) / 2
   high <- 1 - low
-  B1 <- summary(model)$coefficients[2,1]
-  B1se <- summary(model)$coefficients[2,2]
+  B1 <- summary(model)$coefficients[v,1]
+  B1se <- summary(model)$coefficients[v,2]
   ciB1 <- c(B1 + (qt(low, nrow(df) - 2) * B1se), B1 + (qt(high, nrow(df) - 2) * B1se))
   ciB1
 }

@@ -2,10 +2,10 @@ library(gdata)
 library(car)
 library(glmnet)
 
-## for testing purposes
-#setwd("~/Documents/DSI/notes/2-STAT-6021/homework")
-#gas <- read.xls("data-table-B3.xls")
-#gas <- gas[complete.cases(gas$x3),]
+# ## for testing purposes
+# setwd("~/Documents/DSI/notes/2-STAT-6021/homework")
+# gas <- read.xls("data-table-B3.xls")
+# gas <- gas[complete.cases(gas$x3),]
 
 ridgeit <- function(df) { ### RESPONSE MUST BE NAMED 'y'
   #library(car)
