@@ -213,7 +213,7 @@ cv.rf <- function(train, k=5, returnDF=F) {
   recall <- numeric(nk)
   for (i in 1:nk) {
     ck <- levels(train$y)[i]
-    recall[i] <- nrow(predDF[predDF$y==ck & predDF$preds==ck,]) / nrow(predDF[predDF$y==ck,])
+    recall[i] <- nrow(cvdata[cvdata$y==ck & cvdata$preds==ck,]) / nrow(cvdata[cvdata$y==ck,])
   }
   BER <- 1 - (sum(recall)/nk)
   print(paste("Balanced Error Rate:", BER))
